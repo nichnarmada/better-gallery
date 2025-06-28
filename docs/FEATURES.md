@@ -1,0 +1,15 @@
+# Feature Catalogue & Acceptance Criteria
+
+Legend  
+**MUST** ✅ • HIGH 🚧 • MED ⏳ • LOW 🟦
+
+| #   | Priority | Title               | User Story                                                         | Acceptance Criteria                                                                                                                                                                    |
+| --- | -------- | ------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | ✅       | Autosort Grid       | As a user I see my photos chronologically without manual sorting.  | (a) Grid shows all scanned images sorted by `captureDate`.<br>(b) Scroll stays > 55 fps with ≥ 20 k photos.<br>(c) Clicking a month in the mini‑timeline jumps the grid to that month. |
+| 2   | ✅       | Metadata Normaliser | As a user I can fix wrong dates or missing camera tags in bulk.    | (a) “Fix Metadata” dialog previews original vs. new tags.<br>(b) Changes written to both DB and on‑disk EXIF.<br>(c) Undo restores previous state.                                     |
+| 3   | 🚧       | Sidebar Facets      | I can filter by camera, location, tag, album.                      | (a) Facets show counts.<br>(b) Multiple filters use AND logic.<br>(c) Clearing filter restores full set in < 200 ms.                                                                   |
+| 4   | ⏳       | Semantic Search     | I can type “golf at Fuji” and see matching photos.                 | (a) Query returns top‑k (< 100) in < 500 ms.<br>(b) Works offline.<br>(c) Results ranked by cosine similarity.                                                                         |
+| 5   | 🚧       | Tag & Album Editor  | I can drag photos onto an album or add tags via pill UI.           | (a) Album order preserved.<br>(b) Tags saved to DB and XMP.<br>(c) Ctrl+Z reverts last tagging.                                                                                        |
+| 6   | ⏳       | Bulk Rename         | I generate filenames like `{YYYY}-{MM}-{seq}` for selected photos. | (a) Preview list shows before/after.<br>(b) Rename is atomic.<br>(c) History table allows one‑click rollback.                                                                          |
+| 7   | 🟦       | Basic Editing       | Crop, rotate, straight‑en without destructive save.                | (a) Sidecar JSON tracks edits.<br>(b) Export renders edits into a new file.                                                                                                            |
+| 8   | 🟦       | Wi‑Fi Import        | Pull images from phone over WebDAV.                                | (a) Camera roll shows in a picker.<br>(b) Transfer preserves EXIF.                                                                                                                     |

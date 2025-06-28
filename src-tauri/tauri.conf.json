@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.better-gallery.app",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "vite",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "vite build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -21,7 +21,12 @@
       "csp": null
     }
   },
+  "plugins": {
+    "fs": {},
+    "shell": { "scope": ["bin/*"] }
+  },
   "bundle": {
+    "externalBin": ["bin/gg-sidecar*"],
     "active": true,
     "targets": "all",
     "icon": [
