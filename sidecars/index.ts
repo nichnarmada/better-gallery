@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 
-import { exiftool } from "exiftool-vendored"
-import ort from "onnxruntime-node"
-import sharp from "sharp"
-import Database from "better-sqlite3"
-import { drizzle } from "drizzle-orm/better-sqlite3"
-import { photos, tags, photoTags } from "../src/db/schema" // <- path fixed
-import { argv } from "process"
-import path from "node:path"
-import fs from "node:fs"
+import { exiftool } from 'exiftool-vendored'
+import ort from 'onnxruntime-node'
+import sharp from 'sharp'
+import Database from 'better-sqlite3'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { photos, tags, photoTags } from '../src/db/schema' // <- path fixed
+import { argv } from 'process'
+import path from 'node:path'
+import fs from 'node:fs'
 
 //
 // -----------------------------------------------------------------------------
@@ -21,8 +21,8 @@ function has(flag: string) {
   return flags.has(flag)
 }
 
-const dbDir = flags.has("--db") ? argv[argv.indexOf("--db") + 1] : process.cwd()
-const dbFile = path.join(dbDir, "gallery.db")
+const dbDir = flags.has('--db') ? argv[argv.indexOf('--db') + 1] : process.cwd()
+const dbFile = path.join(dbDir, 'gallery.db')
 fs.mkdirSync(dbDir, { recursive: true })
 
 //
@@ -47,10 +47,7 @@ async function scanFolder(folderPath: string) {
     const meta = await exiftool.read(fullPath)
 
     // Thumbnail
-    const thumb = await sharp(fullPath)
-      .resize(320)
-      .jpeg({ quality: 70 })
-      .toBuffer()
+    const thumb = await sharp(fullPath).resize(320).jpeg({ quality: 70 }).toBuffer()
 
     // TODO: Embeddings with ONNX Runtime here
 
@@ -66,11 +63,9 @@ async function scanFolder(folderPath: string) {
 
     // Progress event
     done += 1
-    console.log(
-      JSON.stringify({ event: "progress", done, total: files.length })
-    )
+    console.log(JSON.stringify({ event: 'progress', done, total: files.length }))
   }
-  console.log(JSON.stringify({ event: "done", folder: folderPath }))
+  console.log(JSON.stringify({ event: 'done', folder: folderPath }))
 }
 
 //
@@ -78,8 +73,8 @@ async function scanFolder(folderPath: string) {
 // 4. Entry point
 // -----------------------------------------------------------------------------
 ;(async () => {
-  if (has("--scan")) {
-    const folder = argv[argv.indexOf("--scan") + 1]
+  if (has('--scan')) {
+    const folder = argv[argv.indexOf('--scan') + 1]
     await scanFolder(folder)
   }
   // else‑if other commands ( --embed, --rename … )

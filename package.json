@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
+    "sidecar:build": "bunx @yao-pkg/pkg sidecars/index.ts --targets node20-macos-arm64,node20-macos-x64,node20-win-x64 --assets \"node_modules/**/*.node\" --output src-tauri/bin/gg-sidecar &&     cp src-tauri/bin/gg-sidecar-macos-arm64  src-tauri/bin/gg-sidecar-aarch64-apple-darwin &&     cp src-tauri/bin/gg-sidecar-macos-x64    src-tauri/bin/gg-sidecar-x86_64-apple-darwin",
+    "start": "npm run sidecar:build && tauri dev",
     "build": "bun run sidecar:build && tauri build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "sidecar:build": "bunx @yao-pkg/pkg sidecars/index.ts --targets node20-macos-arm64,node20-macos-x64,node20-win-x64 --assets \"node_modules/**/*.node\" --output src-tauri/bin/gg-sidecar &&     cp src-tauri/bin/gg-sidecar-macos-arm64  src-tauri/bin/gg-sidecar-aarch64-apple-darwin &&     cp src-tauri/bin/gg-sidecar-macos-x64    src-tauri/bin/gg-sidecar-x86_64-apple-darwin",
-    "start": "npm run sidecar:build && tauri dev"
+    "lint": "prettier --check .",
+    "lint:fix": "prettier --write ."
   },
   "dependencies": {
     "@libsql/client": "^0.15.9",
@@ -51,6 +53,7 @@
     "@yao-pkg/pkg": "^6.5.1",
     "dotenv": "^16.6.1",
     "drizzle-kit": "^0.31.4",
+    "prettier": "3.6.2",
     "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.4",
     "typescript": "~5.6.2",
