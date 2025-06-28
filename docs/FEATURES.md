@@ -9,7 +9,7 @@
 
 ## 2. Metadata Editor
 
-- Inspector sidebar with editable fields (title, description, rating, keywords).
+- Inspector sidebar with editable fields (title, description, keywords).
 - Bulk-edit mode (apply to many photos).
 - Undo history per session.
 
@@ -25,7 +25,7 @@
 | **Timeline**         | Infinite scroll grid, grouped by day / month / year.                 |
 | **Map**              | World map with photo pins; click pin to filter gallery.              |
 | **Albums & Folders** | Traditional tree reflecting on-disk structure plus user-made albums. |
-| **Search / Filters** | Text + filter chips (date, camera, location, rating, tags).          |
+| **Search / Filters** | Text + filter chips (date, camera, location, tags).                  |
 
 ## 5. Inspector Panel
 

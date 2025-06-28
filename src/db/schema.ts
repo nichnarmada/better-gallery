@@ -1,16 +1,22 @@
-import { sqliteTable, integer, text, blob, real } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
+import { sql } from 'drizzle-orm'
 
 export const photos = sqliteTable('photos', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  path: text('path').notNull().unique(),
-  captureDate: text('capture_date'),
-  cameraMake: text('camera_make'),
+  filePath: text('file_path').notNull(),
+  fileName: text('file_name').notNull(),
+  fileSize: integer('file_size').notNull(),
+  width: integer('width').notNull(),
+  height: integer('height').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  importedAt: integer('imported_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(strftime('%s', 'now'))`),
+  title: text('title'),
+  description: text('description'),
   cameraModel: text('camera_model'),
   latitude: real('latitude'),
   longitude: real('longitude'),
-  clipEmbed: blob('clip_embed'),
-  textEmbed: blob('text_embed'),
-  thumbnailJpg: blob('thumbnail_jpg'),
 })
 
 export const tags = sqliteTable('tags', {

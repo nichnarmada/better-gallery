@@ -7,6 +7,8 @@ export default defineConfig({
   dialect: 'sqlite',
   // driver: "better-sqlite3",
   dbCredentials: {
-    url: process.env.DB_FILE_NAME ?? 'file:gallery.db',
+    url: './drizzle/gallery.db',
   },
+  verbose: true,
+  strict: true,
 })

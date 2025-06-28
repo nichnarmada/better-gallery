@@ -10,6 +10,7 @@
         "@tailwindcss/vite": "^4.1.11",
         "@tanstack/react-table": "^8.21.3",
         "@tauri-apps/api": "^2",
+        "@tauri-apps/plugin-dialog": "2",
         "@tauri-apps/plugin-fs": "^2.4.0",
         "@tauri-apps/plugin-opener": "^2",
         "@tauri-apps/plugin-shell": "^2.3.0",
@@ -397,6 +398,8 @@
     "@tauri-apps/cli-win32-ia32-msvc": ["@tauri-apps/cli-win32-ia32-msvc@2.6.1", "", { "os": "win32", "cpu": "ia32" }, "sha512-WEZVYekxuG9X9mFJEeJPHsSAl8sHOEEbJQriim+OziFbLA9pv/gfcRRqsbmEJL8uBC8GLTEOdUVolohwXk6S9g=="],
 
     "@tauri-apps/cli-win32-x64-msvc": ["@tauri-apps/cli-win32-x64-msvc@2.6.1", "", { "os": "win32", "cpu": "x64" }, "sha512-fBsjPqIIHaaQt7tnjIGmPHu5p/BNBVD4JfOhO3QqIVBzAb+W2bDyIQPdoDMI943soLr/+N10xeTiPu+3L74+dQ=="],
+
+    "@tauri-apps/plugin-dialog": ["@tauri-apps/plugin-dialog@2.3.0", "", { "dependencies": { "@tauri-apps/api": "^2.6.0" } }, "sha512-ylSBvYYShpGlKKh732ZuaHyJ5Ie1JR71QCXewCtsRLqGdc8Is4xWdz6t43rzXyvkItM9syNPMvFVcvjgEy+/GA=="],
 
     "@tauri-apps/plugin-fs": ["@tauri-apps/plugin-fs@2.4.0", "", { "dependencies": { "@tauri-apps/api": "^2.6.0" } }, "sha512-Sp8AdDcbyXyk6LD6Pmdx44SH3LPeNAvxR2TFfq/8CwqzfO1yOyV+RzT8fov0NNN7d9nvW7O7MtMAptJ42YXA5g=="],
 

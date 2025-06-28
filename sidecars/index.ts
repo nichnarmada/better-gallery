@@ -1,82 +1,71 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 
-import { exiftool } from 'exiftool-vendored'
-import ort from 'onnxruntime-node'
-import sharp from 'sharp'
-import Database from 'better-sqlite3'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
-import { photos, tags, photoTags } from '../src/db/schema' // <- path fixed
 import { argv } from 'process'
 import path from 'node:path'
-import fs from 'node:fs'
+import fs from 'node:fs/promises'
 
-//
-// -----------------------------------------------------------------------------
-// 1. CLI flag parsing (very light; switch to yargs/commander if you prefer)
-// -----------------------------------------------------------------------------
-const flags = new Set(argv.slice(2)) // e.g. ["--scan", "/Users/me/Pics"]
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.avif'])
 
-function has(flag: string) {
-  return flags.has(flag)
+/**
+ * Very basic CLI flag parsing.
+ * @param flag The flag to check for, e.g., "--scan"
+ */
+function has(flag: string): boolean {
+  return argv.includes(flag)
 }
 
-const dbDir = flags.has('--db') ? argv[argv.indexOf('--db') + 1] : process.cwd()
-const dbFile = path.join(dbDir, 'gallery.db')
-fs.mkdirSync(dbDir, { recursive: true })
-
-//
-// -----------------------------------------------------------------------------
-// 2. DB handle (Drizzle + better‑sqlite3)
-// -----------------------------------------------------------------------------
-const sqlite = new Database(dbFile)
-export const db = drizzle(sqlite, { schema: { photos, tags, photoTags } })
-
-//
-// -----------------------------------------------------------------------------
-// 3. Worker helpers (scan, embed, rename…) –– STUBS
-// -----------------------------------------------------------------------------
-async function scanFolder(folderPath: string) {
-  const files = fs.readdirSync(folderPath, { withFileTypes: true })
-  let done = 0
-  for (const file of files) {
-    if (file.isDirectory()) continue // recurse later
-    const fullPath = path.join(folderPath, file.name)
-
-    // EXIF
-    const meta = await exiftool.read(fullPath)
-
-    // Thumbnail
-    const thumb = await sharp(fullPath).resize(320).jpeg({ quality: 70 }).toBuffer()
-
-    // TODO: Embeddings with ONNX Runtime here
-
-    db.insert(photos)
-      .values({
-        path: fullPath,
-        captureDate: meta.DateTimeOriginal ?? null,
-        cameraMake: meta.Make ?? null,
-        cameraModel: meta.Model ?? null,
-        thumbnailJpg: thumb,
-      })
-      .run()
-
-    // Progress event
-    done += 1
-    console.log(JSON.stringify({ event: 'progress', done, total: files.length }))
+/**
+ * Gets the value for a flag, e.g., for "--scan /path/to/photos", returns "/path/to/photos".
+ * @param flag The flag whose value to get.
+ */
+function getValue(flag: string): string | undefined {
+  const index = argv.indexOf(flag)
+  if (index > -1 && argv.length > index + 1) {
+    return argv[index + 1]
   }
-  console.log(JSON.stringify({ event: 'done', folder: folderPath }))
+  return undefined
 }
 
-//
-// -----------------------------------------------------------------------------
-// 4. Entry point
-// -----------------------------------------------------------------------------
-;(async () => {
+/**
+ * Recursively scans a folder and yields the full path of all image files found.
+ * @param dirPath The absolute path of the directory to scan.
+ */
+async function* scanForImages(dirPath: string): AsyncGenerator<string> {
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true })
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name)
+      if (entry.isDirectory()) {
+        yield* scanForImages(fullPath)
+      } else if (entry.isFile() && IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+        yield fullPath
+      }
+    }
+  } catch (error) {
+    console.error(`Error reading directory ${dirPath}:`, error)
+  }
+}
+
+/**
+ * Main entry point for the sidecar process.
+ */
+async function main() {
   if (has('--scan')) {
-    const folder = argv[argv.indexOf('--scan') + 1]
-    await scanFolder(folder)
+    const folder = getValue('--scan')
+    if (!folder) {
+      console.error('Error: --scan flag requires a folder path argument.')
+      process.exit(1)
+    }
+
+    console.log(`Scanning folder: ${folder}`)
+    for await (const imagePath of scanForImages(folder)) {
+      console.log(imagePath)
+    }
+    console.log('Scan complete.')
+  } else {
+    console.log('No command specified. Use --scan <folder_path>')
   }
-  // else‑if other commands ( --embed, --rename … )
-  await exiftool.end() // tidy up
-})()
+}
+
+main().catch(console.error)
