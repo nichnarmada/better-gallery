@@ -1,15 +1,61 @@
-# Feature Catalogue & Acceptance Criteria
+# Better Gallery – Feature List (Non-AI / Non-ML)
 
-Legend  
-**MUST** ✅ • HIGH 🚧 • MED ⏳ • LOW 🟦
+## 1. Universal Metadata Engine
 
-| #   | Priority | Title               | User Story                                                         | Acceptance Criteria                                                                                                                                                                    |
-| --- | -------- | ------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | ✅       | Autosort Grid       | As a user I see my photos chronologically without manual sorting.  | (a) Grid shows all scanned images sorted by `captureDate`.<br>(b) Scroll stays > 55 fps with ≥ 20 k photos.<br>(c) Clicking a month in the mini‑timeline jumps the grid to that month. |
-| 2   | ✅       | Metadata Normaliser | As a user I can fix wrong dates or missing camera tags in bulk.    | (a) “Fix Metadata” dialog previews original vs. new tags.<br>(b) Changes written to both DB and on‑disk EXIF.<br>(c) Undo restores previous state.                                     |
-| 3   | 🚧       | Sidebar Facets      | I can filter by camera, location, tag, album.                      | (a) Facets show counts.<br>(b) Multiple filters use AND logic.<br>(c) Clearing filter restores full set in < 200 ms.                                                                   |
-| 4   | ⏳       | Semantic Search     | I can type “golf at Fuji” and see matching photos.                 | (a) Query returns top‑k (< 100) in < 500 ms.<br>(b) Works offline.<br>(c) Results ranked by cosine similarity.                                                                         |
-| 5   | 🚧       | Tag & Album Editor  | I can drag photos onto an album or add tags via pill UI.           | (a) Album order preserved.<br>(b) Tags saved to DB and XMP.<br>(c) Ctrl+Z reverts last tagging.                                                                                        |
-| 6   | ⏳       | Bulk Rename         | I generate filenames like `{YYYY}-{MM}-{seq}` for selected photos. | (a) Preview list shows before/after.<br>(b) Rename is atomic.<br>(c) History table allows one‑click rollback.                                                                          |
-| 7   | 🟦       | Basic Editing       | Crop, rotate, straight‑en without destructive save.                | (a) Sidecar JSON tracks edits.<br>(b) Export renders edits into a new file.                                                                                                            |
-| 8   | 🟦       | Wi‑Fi Import        | Pull images from phone over WebDAV.                                | (a) Camera roll shows in a picker.<br>(b) Transfer preserves EXIF.                                                                                                                     |
+- **Multi-format ingestion** – EXIF, IPTC/XMP, device-specific fields.
+- **Date/Time normalization** – canonical `timestamp` column, automatic time-zone handling.
+- **Geolocation resolution** – GPS → human-readable location via offline reverse-geocoder.
+- **Side-car safety** – write changes to `.xmp` files to avoid altering originals.
+
+## 2. Metadata Editor
+
+- Inspector sidebar with editable fields (title, description, rating, keywords).
+- Bulk-edit mode (apply to many photos).
+- Undo history per session.
+
+## 3. File-System Watcher
+
+- Real-time detection of new / moved / deleted photos inside watched folders.
+- Incremental database updates without manual refresh.
+
+## 4. Core UI Views
+
+| View                 | Description                                                          |
+| -------------------- | -------------------------------------------------------------------- |
+| **Timeline**         | Infinite scroll grid, grouped by day / month / year.                 |
+| **Map**              | World map with photo pins; click pin to filter gallery.              |
+| **Albums & Folders** | Traditional tree reflecting on-disk structure plus user-made albums. |
+| **Search / Filters** | Text + filter chips (date, camera, location, rating, tags).          |
+
+## 5. Inspector Panel
+
+- Live histogram, focal length, aperture, ISO.
+- Quick-links: “Open in Finder/Explorer”, “Reveal in album”.
+
+## 6. Onboarding & Progress
+
+- First-run wizard for folder selection.
+- Global progress bar for ingestion tasks (metadata read, thumbnail generation).
+
+## 7. Performance & Throttling
+
+- Background job queue with CPU/RAM limits.
+- User-configurable “Pause while on battery / high CPU”.
+
+## 8. Backup & Portability
+
+- One-click “Export Library” (DB, thumbnails, side-cars) to ZIP.
+- Import wizard to restore or merge.
+
+## 9. Accessibility & Internationalization
+
+- Full keyboard navigation.
+- High-contrast & dark themes.
+- i18n ready (English default; JSON locale bundles).
+
+## 10. Packaging & Updates
+
+- Windows installer (MSI/NSIS) with auto-update.
+- macOS `.dmg` & Linux `.AppImage` in later milestones.
+- Delta patch updates via Tauri updater.
+-
