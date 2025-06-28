@@ -23,9 +23,11 @@
   },
   "plugins": {
     "fs": {},
-    "shell": { "scope": ["bin/*"] },
-    "dialog": {},
-    "event": {}
+    "shell": {
+      "open": true
+    },
+    "dialog": null,
+    "event": null
   },
   "bundle": {
     "externalBin": ["bin/gg-sidecar*"],

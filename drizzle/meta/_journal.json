@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1751144987974,
+      "tag": "0000_productive_madelyne_pryor",
+      "breakpoints": true
+    }
+  ]
+}

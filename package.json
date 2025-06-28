@@ -9,7 +9,6 @@
     "start": "npm run sidecar:build && tauri dev",
     "build": "bun run sidecar:build && tauri build",
     "preview": "vite preview",
-    "tauri": "tauri",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "lint": "prettier --check .",

@@ -4,6 +4,11 @@
 import { argv } from 'process'
 import path from 'node:path'
 import fs from 'node:fs/promises'
+import Database from 'better-sqlite3'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { exiftool, ExifDateTime } from 'exiftool-vendored'
+import * as schema from '../src/db/schema'
+import { Photo, NewPhoto } from '../src/db/types'
 
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.avif'])
 
@@ -48,24 +53,88 @@ async function* scanForImages(dirPath: string): AsyncGenerator<string> {
 }
 
 /**
+ * Date Helper function to safely parse date from Exif tags
+ * @param tags The Exif tags object
+ */
+function getBestDate(tags: any): Date {
+  const dt = tags.DateTimeOriginal || tags.CreateDate
+  if (dt instanceof ExifDateTime) {
+    return dt.toDate()
+  }
+  return new Date(tags.FileModifyDate)
+}
+
+function safeParseFloat(value: any): number | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+  const num = Number.parseFloat(value)
+  return Number.isNaN(num) ? null : num
+}
+
+async function processImage(filePath: string, db: ReturnType<typeof drizzle>) {
+  try {
+    const [meta, stats] = await Promise.all([exiftool.read(filePath), fs.stat(filePath)])
+
+    const newPhoto: NewPhoto = {
+      filePath: filePath,
+      fileName: path.basename(filePath),
+      fileSize: stats.size,
+      width: meta.ImageWidth ?? 0,
+      height: meta.ImageHeight ?? 0,
+      createdAt: getBestDate(meta),
+      title: meta.Title,
+      description: meta.Description,
+      cameraModel: meta.Model,
+      latitude: safeParseFloat(meta.GPSLatitude),
+      longitude: safeParseFloat(meta.GPSLongitude),
+    }
+
+    await db.insert(schema.photos).values(newPhoto).onConflictDoNothing().run()
+
+    console.log(JSON.stringify({ type: 'progress', path: filePath }))
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'An unknown error occurred'
+    console.error(JSON.stringify({ type: 'error', path: filePath, message }))
+  }
+}
+
+/**
  * Main entry point for the sidecar process.
  */
 async function main() {
   if (has('--scan')) {
     const folder = getValue('--scan')
-    if (!folder) {
-      console.error('Error: --scan flag requires a folder path argument.')
+    const dbPath = getValue('--db')
+
+    if (!folder || !dbPath) {
+      console.error('Error: --scan and --db flags are required.')
       process.exit(1)
     }
 
-    console.log(`Scanning folder: ${folder}`)
+    const sqlite = new Database(dbPath)
+    const db = drizzle(sqlite, { schema })
+
+    console.log(JSON.stringify({ type: 'start', folder }))
+
+    const allImagePaths = []
     for await (const imagePath of scanForImages(folder)) {
-      console.log(imagePath)
+      allImagePaths.push(imagePath)
     }
-    console.log('Scan complete.')
+
+    for (const imagePath of allImagePaths) {
+      await processImage(imagePath, db)
+    }
+
+    await exiftool.end()
+    console.log(JSON.stringify({ type: 'done', total: allImagePaths.length }))
   } else {
-    console.log('No command specified. Use --scan <folder_path>')
+    console.log('No command specified. Use --scan <folder_path> --db <db_path>')
   }
 }
 
-main().catch(console.error)
+main().catch(e => {
+  const message = e instanceof Error ? e.message : 'An unknown error occurred'
+  console.error(JSON.stringify({ type: 'error', message }))
+  exiftool.end()
+})

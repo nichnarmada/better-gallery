@@ -4,15 +4,44 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { listen } from '@tauri-apps/api/event'
 import './App.css'
 
+type ScanEvent =
+  | { type: 'start'; folder: string }
+  | { type: 'progress'; path: string }
+  | { type: 'done'; total: number }
+  | { type: 'error'; path?: string; message: string }
+
 function App() {
   const [imagePaths, setImagePaths] = useState<string[]>([])
   const [scanStatus, setScanStatus] = useState('idle') // 'idle', 'scanning', 'done', 'error'
+  const [totalFound, setTotalFound] = useState(0)
 
   useEffect(() => {
     const unlisten = listen<string>('scan-update', event => {
-      // The sidecar prints status lines we can ignore
-      if (!event.payload.startsWith('Scanning folder:') && event.payload !== 'Scan complete.') {
-        setImagePaths(prevPaths => [...prevPaths, event.payload])
+      try {
+        const payload: ScanEvent = JSON.parse(event.payload)
+        switch (payload.type) {
+          case 'start':
+            setScanStatus('scanning')
+            setImagePaths([])
+            setTotalFound(0)
+            break
+          case 'progress':
+            // To avoid re-rendering on every single file, you might want to batch updates
+            // but for now, this is fine.
+            setImagePaths(prevPaths => [...prevPaths, payload.path])
+            break
+          case 'done':
+            setScanStatus('done')
+            setTotalFound(payload.total)
+            break
+          case 'error':
+            setScanStatus('error')
+            console.error('Scan Error:', payload.message, payload.path)
+            break
+        }
+      } catch (e) {
+        // This will catch non-JSON messages from the sidecar, which we can ignore.
+        console.log('Non-JSON message from backend:', event.payload)
       }
     })
 
@@ -30,12 +59,8 @@ function App() {
       })
 
       if (typeof selected === 'string') {
-        setImagePaths([]) // Clear previous results
-        setScanStatus('scanning')
-
+        // State updates are now handled by the event listener
         await invoke('scan_folder', { folderPath: selected })
-
-        setScanStatus('done')
       }
     } catch (error) {
       console.error('Error during folder selection or scan:', error)
@@ -54,9 +79,9 @@ function App() {
         </button>
       </div>
 
-      {scanStatus === 'scanning' && <p>Scanning in progress, please wait...</p>}
+      {scanStatus === 'scanning' && <p>Scanning... found {imagePaths.length} images.</p>}
       {scanStatus === 'error' && <p style={{ color: 'red' }}>An error occurred during the scan.</p>}
-      {scanStatus === 'done' && <p>Scan complete! Found {imagePaths.length} images.</p>}
+      {scanStatus === 'done' && <p>Scan complete! Found {totalFound} images.</p>}
 
       <div className="path-list">
         {imagePaths.map((path, index) => (

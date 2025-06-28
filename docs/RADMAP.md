@@ -6,7 +6,7 @@
 | Phase | Sprint(s) | Goal                          | Key Deliverables                                                                          | Status |
 | ----- | --------- | ----------------------------- | ----------------------------------------------------------------------------------------- | ------ |
 | 0     | 0-1       | **Foundations**               | • Monorepo setup (pnpm + Cargo)`<br>`• CI pipeline (Rust, Vitest)                         | 🟡     |
-| 1     | 2-3       | **Universal Metadata Engine** | • Final DB schema`<br>`• Folder scanner CLI `<br>`• Tauri command `scan_folder`           | ⚪     |
+| 1     | 2-3       | **Universal Metadata Engine** | • Final DB schema`<br>`• Folder scanner CLI `<br>`• Tauri command `scan_folder`           | 🟡     |
 | 2     | 3-4       | **Metadata Editor**           | • Inspector sidebar CRUD`<br>`• Side-car XMP write-back                                   | ⚪     |
 | 3     | 4-5       | **File-System Watcher**       | • Cross-platform watcher`<br>`• Incremental DB sync                                       | ⚪     |
 | 4     | 4-6       | **Core UI Shell**             | • Timeline grid (virtualised)`<br>`• Map, Albums routes `<br>`• Global state & IPC bridge | ⚪     |
