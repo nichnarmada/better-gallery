@@ -18,7 +18,14 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/drizzle/*": ["./drizzle/*"],
+      "@/sidecars/*": ["./sidecars/*"]
+    }
   },
   "include": ["src", "sidecars", "drizzle"],
   "references": [{ "path": "./tsconfig.node.json" }]
