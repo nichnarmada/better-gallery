@@ -44,7 +44,7 @@ jobs:
 
       # Use the official Tauri build action which sets up Rust and platform deps automatically
       - name: Build Tauri bundle
-        uses: tauri-apps/tauri-action@v2
+        uses: tauri-apps/tauri-action@v0
         env:
           TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
@@ -54,7 +54,7 @@ jobs:
 
       # Always upload bundles as workflow artifacts so they are downloadable even on branch builds
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: better-gallery-${{ runner.os }}
           path: |
