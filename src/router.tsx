@@ -16,8 +16,8 @@ function Landing() {
   const navigate = useNavigate()
 
   React.useEffect(() => {
-    invoke<{ id: number; path: string }[]>('list_folders').then(folders => {
-      navigate({ to: folders.length > 0 ? '/gallery' : '/setup', replace: true })
+    invoke<{ id: number; path: string }[]>('list_folders').then(() => {
+      navigate({ to: '/gallery', replace: true })
     })
   }, [navigate])
 
