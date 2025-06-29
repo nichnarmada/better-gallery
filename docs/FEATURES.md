@@ -1,5 +1,10 @@
 # Better Gallery – Feature List (Non-AI / Non-ML)
 
+> **Status update (Phase 0)** – Baseline gallery implemented with:
+> • Folder management modal (add/remove)
+> • Automatic scanning and thumbnail display
+> • Sidebar navigation shell
+
 ## 1. Universal Metadata Engine
 
 - **Multi-format ingestion** – EXIF, IPTC/XMP, device-specific fields.
@@ -30,7 +35,7 @@
 ## 5. Inspector Panel
 
 - Live histogram, focal length, aperture, ISO.
-- Quick-links: “Open in Finder/Explorer”, “Reveal in album”.
+- Quick-links: "Open in Finder/Explorer", "Reveal in album".
 
 ## 6. Onboarding & Progress
 
@@ -40,11 +45,11 @@
 ## 7. Performance & Throttling
 
 - Background job queue with CPU/RAM limits.
-- User-configurable “Pause while on battery / high CPU”.
+- User-configurable "Pause while on battery / high CPU".
 
 ## 8. Backup & Portability
 
-- One-click “Export Library” (DB, thumbnails, side-cars) to ZIP.
+- One-click "Export Library" (DB, thumbnails, side-cars) to ZIP.
 - Import wizard to restore or merge.
 
 ## 9. Accessibility & Internationalization
@@ -58,4 +63,3 @@
 - Windows installer (MSI/NSIS) with auto-update.
 - macOS `.dmg` & Linux `.AppImage` in later milestones.
 - Delta patch updates via Tauri updater.
--
