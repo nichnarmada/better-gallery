@@ -8,7 +8,14 @@ use std::fs;
 #[derive(Debug, Serialize, Clone)]
 struct Photo {
     id: i32,
+    #[serde(rename = "filePath")]
     file_path: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct Folder {
+    id: i32,
+    path: String,
 }
 
 // Add simple logging macro alias for clarity
@@ -71,6 +78,44 @@ fn ensure_db_initialized(db_path: &Path) -> Result<(), String> {
         run_migration(&conn)?;
         log!("Migration applied successfully");
     }
+
+    // Ensure folders table exists
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS folders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            path TEXT UNIQUE NOT NULL,
+            added_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+        );",
+    )
+    .map_err(|e| {
+        log!("Failed to ensure folders table: {}", e);
+        e.to_string()
+    })?;
+
+    // Ensure folder_id column exists in photos table
+    let has_folder_id: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('photos') WHERE name='folder_id'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    if has_folder_id == 0 {
+        log!("Adding folder_id column to photos table");
+        conn.execute_batch(
+            "ALTER TABLE photos ADD COLUMN folder_id INTEGER REFERENCES folders(id) ON DELETE CASCADE;",
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    // Ensure unique index on file_path to prevent duplicate rows
+    conn.execute_batch(
+        "CREATE UNIQUE INDEX IF NOT EXISTS photos_file_path_unique ON photos(file_path);",
+    )
+    .map_err(|e| {
+        log!("Failed to create unique index: {}", e);
+        e.to_string()
+    })?;
 
     Ok(())
 }
@@ -207,13 +252,16 @@ async fn get_all_photos(app_handle: tauri::AppHandle) -> Result<Vec<Photo>, Stri
     Ok(photos)
 }
 
-#[tauri::command]
-async fn scan_folder(
-    window: tauri::Window,
-    app_handle: tauri::AppHandle,
-    folder_path: String,
+async fn scan_folder_internal(
+    window: &tauri::Window,
+    app_handle: &tauri::AppHandle,
+    folder_path: &str,
+    folder_id: i64,
 ) -> Result<String, String> {
-    log!("scan_folder called with folder_path: {}", folder_path);
+    log!(
+        "scan_folder_internal called with folder_path: {} (folder_id={})",
+        folder_path, folder_id
+    );
     let app_data_dir = app_handle
         .path()
         .app_data_dir()
@@ -235,7 +283,9 @@ async fn scan_folder(
     ensure_db_initialized(&db_path)?;
 
     let shell = window.shell();
-    let (cmd, args) = sidecar_command(&folder_path, db_path.to_str().unwrap_or_default());
+    let (cmd, mut args) = sidecar_command(folder_path, db_path.to_str().unwrap_or_default());
+    args.push("--folder-id".into());
+    args.push(folder_id.to_string());
     log!("Spawning sidecar process: {} {}", cmd, args.join(" "));
     let shell_cmd = shell.command(&cmd).args(args);
     let (mut rx, _child) = shell_cmd.spawn().map_err(|e| {
@@ -289,6 +339,131 @@ async fn scan_folder(
     Ok(output.join("\n"))
 }
 
+#[tauri::command]
+async fn refresh_library(
+    window: tauri::Window,
+    app_handle: tauri::AppHandle,
+    folder_path: String,
+) -> Result<(), String> {
+    log!("refresh_library called for folder_path: {}", folder_path);
+
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let db_path = app_data_dir.join("gallery.db");
+
+    // Ensure DB exists
+    ensure_db_initialized(&db_path)?;
+
+    // Find folder id
+    let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+    let folder_id: i64 = conn
+        .query_row("SELECT id FROM folders WHERE path = ?1", [&folder_path], |row| row.get(0))
+        .map_err(|_| "Folder not found. Please add folder first".to_string())?;
+
+    // Clear existing photos for this folder
+    conn.execute("DELETE FROM photos WHERE folder_id = ?1", [folder_id])
+        .map_err(|e| format!("Failed to clear photos table: {}", e))?;
+
+    // Remove any legacy rows inserted before folder_id existed (NULL folder_id)
+    conn.execute("DELETE FROM photos WHERE folder_id IS NULL", [])
+        .map_err(|e| format!("Failed to clear legacy photos: {}", e))?;
+    log!("Existing photo records for folder deleted");
+
+    // Run a fresh scan to repopulate
+    scan_folder_internal(&window, &app_handle, &folder_path, folder_id).await?;
+
+    Ok(())
+}
+
+// Public command maintaining old signature (will be deprecated once frontend updated)
+#[tauri::command]
+async fn scan_folder(window: tauri::Window, app_handle: tauri::AppHandle, folder_path: String) -> Result<String, String> {
+    // For legacy call, ensure folder exists or create temp one.
+    // create or get folder id
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let db_path = app_data_dir.join("gallery.db");
+    ensure_db_initialized(&db_path)?;
+
+    let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT OR IGNORE INTO folders(path) VALUES (?1)",
+        [ &folder_path ],
+    ).map_err(|e| e.to_string())?;
+    let folder_id: i64 = conn
+        .query_row("SELECT id FROM folders WHERE path = ?1", [&folder_path], |row| row.get(0))
+        .map_err(|e| e.to_string())?;
+
+    scan_folder_internal(&window, &app_handle, &folder_path, folder_id).await
+}
+
+#[tauri::command]
+async fn add_folder(app_handle: tauri::AppHandle, folder_path: String) -> Result<i64, String> {
+    log!("add_folder called: {}", folder_path);
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let db_path = app_data_dir.join("gallery.db");
+    ensure_db_initialized(&db_path)?;
+
+    let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT OR IGNORE INTO folders(path) VALUES (?1)",
+        [&folder_path],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let folder_id: i64 = conn
+        .query_row("SELECT id FROM folders WHERE path = ?1", [&folder_path], |row| row.get(0))
+        .map_err(|e| e.to_string())?;
+
+    Ok(folder_id)
+}
+
+#[tauri::command]
+async fn list_folders(app_handle: tauri::AppHandle) -> Result<Vec<Folder>, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let db_path = app_data_dir.join("gallery.db");
+    ensure_db_initialized(&db_path)?;
+    let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare("SELECT id, path FROM folders ORDER BY added_at ASC").map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(Folder {
+                id: row.get(0)?,
+                path: row.get(1)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for f in rows {
+        out.push(f.map_err(|e| e.to_string())?);
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+async fn remove_folder(app_handle: tauri::AppHandle, folder_id: i64) -> Result<(), String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let db_path = app_data_dir.join("gallery.db");
+    ensure_db_initialized(&db_path)?;
+    let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM folders WHERE id = ?1", [folder_id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -298,7 +473,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             scan_folder,
-            get_all_photos
+            get_all_photos,
+            refresh_library,
+            add_folder,
+            list_folders,
+            remove_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

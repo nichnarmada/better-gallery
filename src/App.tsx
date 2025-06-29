@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { toast } from 'sonner'
@@ -7,7 +7,15 @@ import { GalleryScreen } from './screens/GalleryScreen'
 import './App.css'
 
 function App() {
-  const [libraryPath, setLibraryPath] = useState<string | null>(null)
+  const [hasLibrary, setHasLibrary] = useState(false)
+
+  useEffect(() => {
+    invoke<{ id: number; path: string }[]>('list_folders')
+      .then(folders => {
+        if (folders.length > 0) setHasLibrary(true)
+      })
+      .catch(() => {})
+  }, [])
 
   async function selectFolderAndScan() {
     try {
@@ -18,24 +26,20 @@ function App() {
       })
 
       if (typeof selected === 'string') {
-        setLibraryPath(selected)
-        toast.info('Starting scan...', { description: selected })
-        // Start the scan but don't block the UI transition on it.
-        invoke('scan_folder', { folderPath: selected }).catch(error => {
-          toast.error('Scan failed', { description: String(error) })
-          console.error('Scan failed:', error)
-        })
+        await invoke<number>('add_folder', { folderPath: selected })
+        setHasLibrary(true)
+        toast.info('Folder added. Scanning will start automatically.', { description: selected })
       }
     } catch (error) {
       console.error('Error during folder selection or scan:', error)
     }
   }
 
-  if (!libraryPath) {
+  if (!hasLibrary) {
     return <SetupScreen onFolderSelect={selectFolderAndScan} />
   }
 
-  return <GalleryScreen libraryPath={libraryPath} />
+  return <GalleryScreen />
 }
 
 export default App

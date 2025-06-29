@@ -8,12 +8,12 @@ import { Toaster } from '@/components/ui/sonner'
 const queryClient = new QueryClient()
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <App />
-        <Toaster />
-      </ThemeProvider>
-    </QueryClientProvider>
-  </React.StrictMode>,
+  // <React.StrictMode>
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider>
+      <App />
+      <Toaster />
+    </ThemeProvider>
+  </QueryClientProvider>,
+  // </React.StrictMode>,
 )

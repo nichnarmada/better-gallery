@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm'
 
 export const photos = sqliteTable('photos', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  filePath: text('file_path').notNull(),
+  filePath: text('file_path').notNull().unique(),
   fileName: text('file_name').notNull(),
   fileSize: integer('file_size').notNull(),
   width: integer('width').notNull(),
@@ -17,6 +17,7 @@ export const photos = sqliteTable('photos', {
   cameraModel: text('camera_model'),
   latitude: real('latitude'),
   longitude: real('longitude'),
+  folderId: integer('folder_id').references(() => folders.id, { onDelete: 'cascade' }),
 })
 
 export const tags = sqliteTable('tags', {
@@ -33,4 +34,12 @@ export const settings = sqliteTable('settings', {
     .primaryKey()
     .$default(() => 1),
   json: text('json'),
+})
+
+export const folders = sqliteTable('folders', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  path: text('path').notNull().unique(),
+  addedAt: integer('added_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(strftime('%s', 'now'))`),
 })

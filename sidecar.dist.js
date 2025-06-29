@@ -20574,12 +20574,13 @@ var init_drizzle_orm = __esm({
 // src/db/schema.ts
 var schema_exports = {};
 __export(schema_exports, {
+  folders: () => folders,
   photoTags: () => photoTags,
   photos: () => photos,
   settings: () => settings,
   tags: () => tags
 });
-var photos, tags, photoTags, settings;
+var photos, tags, photoTags, settings, folders;
 var init_schema = __esm({
   "src/db/schema.ts"() {
     "use strict";
@@ -20587,7 +20588,7 @@ var init_schema = __esm({
     init_drizzle_orm();
     photos = sqliteTable("photos", {
       id: integer("id").primaryKey({ autoIncrement: true }),
-      filePath: text("file_path").notNull(),
+      filePath: text("file_path").notNull().unique(),
       fileName: text("file_name").notNull(),
       fileSize: integer("file_size").notNull(),
       width: integer("width").notNull(),
@@ -20598,7 +20599,8 @@ var init_schema = __esm({
       description: text("description"),
       cameraModel: text("camera_model"),
       latitude: real("latitude"),
-      longitude: real("longitude")
+      longitude: real("longitude"),
+      folderId: integer("folder_id").references(() => folders.id, { onDelete: "cascade" })
     });
     tags = sqliteTable("tags", {
       id: integer("id").primaryKey(),
@@ -20611,6 +20613,11 @@ var init_schema = __esm({
     settings = sqliteTable("settings", {
       id: integer("id").primaryKey().$default(() => 1),
       json: text("json")
+    });
+    folders = sqliteTable("folders", {
+      id: integer("id").primaryKey({ autoIncrement: true }),
+      path: text("path").notNull().unique(),
+      addedAt: integer("added_at", { mode: "timestamp" }).notNull().default(sql`(strftime('%s', 'now'))`)
     });
   }
 });
@@ -20656,16 +20663,23 @@ function safeParseFloat(value) {
   const num = Number.parseFloat(value);
   return Number.isNaN(num) ? null : num;
 }
-async function processImage(filePath, db) {
+async function canonicalPath(filePath) {
+  const resolved = await import_promises.default.realpath(filePath);
+  if (process.platform === "darwin") return resolved.toLowerCase();
+  return resolved;
+}
+async function processImage(filePath, db, folderId) {
   try {
     const [meta, stats] = await Promise.all([import_exiftool_vendored.exiftool.read(filePath), import_promises.default.stat(filePath)]);
+    const canonical = await canonicalPath(filePath);
     const newPhoto = {
-      filePath,
+      filePath: canonical,
       fileName: import_node_path.default.basename(filePath),
       fileSize: stats.size,
       width: meta.ImageWidth ?? 0,
       height: meta.ImageHeight ?? 0,
       createdAt: getBestDate(meta),
+      folderId,
       title: meta.Title,
       description: meta.Description,
       cameraModel: meta.Model,
@@ -20694,8 +20708,13 @@ async function main() {
     for await (const imagePath of scanForImages(folder)) {
       allImagePaths.push(imagePath);
     }
+    const folderIdArg = parseInt(getValue("--folder-id") ?? "0", 10);
+    if (Number.isNaN(folderIdArg) || folderIdArg <= 0) {
+      console.error(JSON.stringify({ type: "error", message: "Invalid or missing --folder-id" }));
+      process.exit(1);
+    }
     for (const imagePath of allImagePaths) {
-      await processImage(imagePath, db);
+      await processImage(imagePath, db, folderIdArg);
     }
     await import_exiftool_vendored.exiftool.end();
     console.log(JSON.stringify({ type: "done", total: allImagePaths.length }));

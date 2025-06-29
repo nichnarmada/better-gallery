@@ -72,17 +72,27 @@ function safeParseFloat(value: any): number | null {
   return Number.isNaN(num) ? null : num
 }
 
-async function processImage(filePath: string, db: ReturnType<typeof drizzle>) {
+// Helper to canonicalize file path and normalize case (macOS insensitive)
+async function canonicalPath(filePath: string): Promise<string> {
+  const resolved = await fs.realpath(filePath)
+  if (process.platform === 'darwin') return resolved.toLowerCase()
+  return resolved
+}
+
+async function processImage(filePath: string, db: ReturnType<typeof drizzle>, folderId: number): Promise<void> {
   try {
     const [meta, stats] = await Promise.all([exiftool.read(filePath), fs.stat(filePath)])
 
+    const canonical = await canonicalPath(filePath)
+
     const newPhoto: NewPhoto = {
-      filePath: filePath,
+      filePath: canonical,
       fileName: path.basename(filePath),
       fileSize: stats.size,
       width: meta.ImageWidth ?? 0,
       height: meta.ImageHeight ?? 0,
       createdAt: getBestDate(meta),
+      folderId,
       title: meta.Title,
       description: meta.Description,
       cameraModel: meta.Model,
@@ -122,8 +132,14 @@ async function main() {
       allImagePaths.push(imagePath)
     }
 
+    const folderIdArg = parseInt(getValue('--folder-id') ?? '0', 10)
+    if (Number.isNaN(folderIdArg) || folderIdArg <= 0) {
+      console.error(JSON.stringify({ type: 'error', message: 'Invalid or missing --folder-id' }))
+      process.exit(1)
+    }
+
     for (const imagePath of allImagePaths) {
-      await processImage(imagePath, db)
+      await processImage(imagePath, db, folderIdArg)
     }
 
     await exiftool.end()

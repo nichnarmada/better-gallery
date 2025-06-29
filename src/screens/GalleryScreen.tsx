@@ -2,20 +2,23 @@ import { Button } from '@/components/ui/button'
 import { Photo, ScanEvent } from '@/types'
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { PhotoThumbnail } from '@/components/PhotoThumbnail'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { Loader2, RefreshCcw } from 'lucide-react'
 
-type Props = {
-  libraryPath: string
-}
-
-export function GalleryScreen({ libraryPath }: Props) {
+export function GalleryScreen() {
+  const [folders, setFolders] = useState<string[]>([])
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'done' | 'error'>('idle')
-  const toastId = useRef<string | number | undefined>(undefined)
   const queryClient = useQueryClient()
+
+  // Fetch folders once
+  useEffect(() => {
+    invoke<{ id: number; path: string }[]>('list_folders').then(res => {
+      setFolders(res.map(f => f.path))
+    })
+  }, [])
 
   const {
     data: photos,
@@ -23,17 +26,19 @@ export function GalleryScreen({ libraryPath }: Props) {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['photos', libraryPath],
+    queryKey: ['photos'],
     queryFn: () => invoke<Photo[]>('get_all_photos'),
-    enabled: scanStatus === 'done', // <─  don’t run until scan finished
+    enabled: scanStatus === 'done',
     refetchOnWindowFocus: false,
   })
 
   useEffect(() => {
-    // Whenever the folder changes, kick off a fresh scan automatically
-    setScanStatus('scanning')
-    invoke('scan_folder', { folderPath: libraryPath })
-  }, [libraryPath])
+    // Kick off scans for all folders
+    folders.forEach(path => {
+      setScanStatus('scanning')
+      invoke('scan_folder', { folderPath: path })
+    })
+  }, [folders])
 
   useEffect(() => {
     const unlisten = listen<string>('scan-update', event => {
@@ -41,12 +46,6 @@ export function GalleryScreen({ libraryPath }: Props) {
         const payload: ScanEvent = JSON.parse(event.payload)
 
         switch (payload.type) {
-          case 'start':
-            setScanStatus('scanning')
-            toastId.current = toast.loading('Starting scan...', {
-              description: 'Discovering photos in your library...',
-            })
-            break
           case 'progress':
             // The toast could be updated here with progress, but for simplicity
             // we will just wait for the 'done' event to give a final summary.
@@ -54,12 +53,14 @@ export function GalleryScreen({ libraryPath }: Props) {
           case 'done':
             setScanStatus('done')
             refetch() // <─ explicit refresh once scan finished
+            toast.success('Scan complete!', {
+              description: `Found ${payload.total} images.`,
+            })
             break
           case 'error':
             setScanStatus('error')
             toast.error('An error occurred during the scan.', {
               description: payload.message,
-              id: toastId.current,
             })
             break
         }
@@ -77,21 +78,24 @@ export function GalleryScreen({ libraryPath }: Props) {
     <div className="flex h-screen flex-col">
       <header className="flex h-16 items-center justify-between border-b px-4">
         <h1 className="text-lg font-semibold">Gallery</h1>
-        <Button
-          onClick={() => invoke('scan_folder', { folderPath: libraryPath })}
-          disabled={scanStatus === 'scanning'}
-          variant="outline"
-          size="sm"
-        >
-          {scanStatus === 'scanning' ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Scanning...
-            </>
-          ) : (
-            'Rescan Folder'
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              setScanStatus('scanning')
+              folders.forEach(path => invoke('refresh_library', { folderPath: path }))
+            }}
+            disabled={scanStatus === 'scanning'}
+            variant="outline"
+            size="icon"
+          >
+            {scanStatus === 'scanning' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCcw className="h-4 w-4" />
+            )}
+            <span className="sr-only">Refresh Library</span>
+          </Button>
+        </div>
       </header>
       <main className="flex-1 overflow-y-auto p-4">
         {isLoading && (
