@@ -1,12 +1,32 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { invoke } from '@tauri-apps/api/core'
+import { open } from '@tauri-apps/plugin-dialog'
 import { FolderOpen } from 'lucide-react'
+import { toast } from 'sonner'
+import { useNavigate } from '@tanstack/react-router'
 
-type Props = {
-  onFolderSelect: () => void
-}
+export function SetupScreen() {
+  const navigate = useNavigate()
 
-export function SetupScreen({ onFolderSelect }: Props) {
+  async function selectFolderAndScan() {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: 'Select a folder to scan',
+      })
+
+      if (typeof selected === 'string') {
+        await invoke<number>('add_folder', { folderPath: selected })
+        toast.info('Folder added. Scanning will start automatically.', { description: selected })
+        navigate({ to: '/gallery', replace: true })
+      }
+    } catch (error) {
+      console.error('Error during folder selection or scan:', error)
+    }
+  }
+
   return (
     <div className="flex h-screen w-screen items-center justify-center">
       <Card className="w-[450px]">
@@ -21,7 +41,7 @@ export function SetupScreen({ onFolderSelect }: Props) {
           </p>
         </CardContent>
         <CardFooter>
-          <Button className="w-full" onClick={onFolderSelect}>
+          <Button className="w-full" onClick={selectFolderAndScan}>
             <FolderOpen className="mr-2 h-4 w-4" />
             Select Photo Folder
           </Button>

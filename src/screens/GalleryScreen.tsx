@@ -7,16 +7,21 @@ import { toast } from 'sonner'
 import { PhotoThumbnail } from '@/components/PhotoThumbnail'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2, RefreshCcw } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
 
 export function GalleryScreen() {
   const [folders, setFolders] = useState<string[]>([])
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'done' | 'error'>('idle')
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   // Fetch folders once
   useEffect(() => {
     invoke<{ id: number; path: string }[]>('list_folders').then(res => {
       setFolders(res.map(f => f.path))
+      if (res.length === 0) {
+        navigate({ to: '/setup', replace: true })
+      }
     })
   }, [])
 
