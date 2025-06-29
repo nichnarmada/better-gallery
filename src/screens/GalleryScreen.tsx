@@ -2,27 +2,28 @@ import { Button } from '@/components/ui/button'
 import { Photo, ScanEvent } from '@/types'
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { toast } from 'sonner'
 import { PhotoThumbnail } from '@/components/PhotoThumbnail'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, RefreshCcw } from 'lucide-react'
+import { Loader2, RefreshCcw, Plus } from 'lucide-react'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import { FolderManagerDialog } from '@/components/FolderManagerDialog'
+import { ModeToggle } from '@/components/mode-toggle'
 
 export function GalleryScreen() {
-  const [folders, setFolders] = useState<string[]>([])
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'done' | 'error'>('idle')
   const queryClient = useQueryClient()
 
-  // Fetch folders once
-  useEffect(() => {
-    invoke<{ id: number; path: string }[]>('list_folders').then(res => {
-      setFolders(res.map(f => f.path))
-    })
-  }, [])
+  // Folders query
+  const { data: folderRows = [] } = useQuery({
+    queryKey: ['folders'],
+    queryFn: () => invoke<{ id: number; path: string }[]>('list_folders'),
+  })
+
+  const folders = folderRows.map(f => f.path)
 
   const {
     data: photos,
@@ -36,13 +37,13 @@ export function GalleryScreen() {
     refetchOnWindowFocus: false,
   })
 
+  const hasScanned = useRef(false)
+
   useEffect(() => {
-    if (folders.length === 0) return
-    // Kick off scans for all folders
-    folders.forEach(path => {
-      setScanStatus('scanning')
-      invoke('scan_folder', { folderPath: path })
-    })
+    if (hasScanned.current || folders.length === 0) return
+    hasScanned.current = true
+    setScanStatus('scanning')
+    folders.forEach(path => invoke('scan_folder', { folderPath: path }))
   }, [folders])
 
   useEffect(() => {
@@ -92,9 +93,12 @@ export function GalleryScreen() {
       <SidebarInset>
         <div className="flex h-screen flex-col">
           <header className="flex h-16 items-center justify-between border-b px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
-            <h1 className="text-lg font-semibold">Gallery</h1>
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="h-4" />
+              <h1 className="text-lg font-semibold">Gallery</h1>
+            </div>
+
             <div className="flex items-center gap-2">
               <Button
                 onClick={() => {
@@ -128,11 +132,13 @@ export function GalleryScreen() {
               </div>
             )}
 
-            {!isLoading && !isError && photos?.length === 0 && (
+            {!isLoading && !isError && (!photos || photos.length === 0) && (
               <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                 <p className="text-muted-foreground text-lg">No photos yet</p>
                 <FolderManagerDialog>
-                  <Button variant="default">Add Folder…</Button>
+                  <Button variant="default">
+                    <Plus className="mr-2 h-4 w-4" /> Add Folder
+                  </Button>
                 </FolderManagerDialog>
               </div>
             )}
