@@ -34,11 +34,11 @@ jobs:
           bun run sidecar:bundle
           # Build only the native binary for the current runner's platform.
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            bunx @yao-pkg/pkg sidecar.dist.js --targets node20-win-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar
+            bunx @yao-pkg/pkg sidecar.dist.js --targets node20-win-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar-win-x64.exe
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
             bunx @yao-pkg/pkg sidecar.dist.js --targets node20-macos-arm64,node20-macos-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar
           else
-            bunx @yao-pkg/pkg sidecar.dist.js --targets node20-linux-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar
+            bunx @yao-pkg/pkg sidecar.dist.js --targets node20-linux-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar-linux-x64
           fi
           if [[ "${{ runner.os }}" == "macOS" ]]; then
             bun run sidecar:post
