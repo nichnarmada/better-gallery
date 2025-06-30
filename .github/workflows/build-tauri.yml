@@ -40,17 +40,20 @@ jobs:
             cp src-tauri/bin/gg-sidecar-x86_64-pc-windows-msvc.exe src-tauri/bin/gg-sidecar-win-x64.exe
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
             bunx @yao-pkg/pkg sidecar.dist.js --targets node20-macos-arm64,node20-macos-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar
-            # Ensure both arch-specific filenames exist for the Rust build script
-            if [[ -f src-tauri/bin/gg-sidecar-macos-arm64 ]]; then
-              cp src-tauri/bin/gg-sidecar-macos-arm64 src-tauri/bin/gg-sidecar-aarch64-apple-darwin
-            else
-              cp src-tauri/bin/gg-sidecar-macos-x64 src-tauri/bin/gg-sidecar-aarch64-apple-darwin || true
-            fi
-            if [[ -f src-tauri/bin/gg-sidecar-macos-x64 ]]; then
-              cp src-tauri/bin/gg-sidecar-macos-x64 src-tauri/bin/gg-sidecar-x86_64-apple-darwin
-            else
-              cp src-tauri/bin/gg-sidecar-macos-arm64 src-tauri/bin/gg-sidecar-x86_64-apple-darwin || true
-            fi
+            # Build arm64 sidecar
+            bunx @yao-pkg/pkg sidecar.dist.js --targets node20-macos-arm64 \
+              --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" \
+              --output src-tauri/bin/gg-sidecar-aarch64-apple-darwin
+
+            # Build x64 sidecar
+            bunx @yao-pkg/pkg sidecar.dist.js --targets node20-macos-x64 \
+              --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" \
+              --output src-tauri/bin/gg-sidecar-x86_64-apple-darwin
+
+            # Aliases used at runtime by Rust code
+            cp src-tauri/bin/gg-sidecar-aarch64-apple-darwin src-tauri/bin/gg-sidecar-macos-arm64
+            cp src-tauri/bin/gg-sidecar-x86_64-apple-darwin src-tauri/bin/gg-sidecar-macos-x64
+
             if [[ "${{ runner.os }}" == "macOS" ]]; then
               bun run sidecar:post
             fi
