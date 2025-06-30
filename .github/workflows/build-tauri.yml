@@ -34,16 +34,19 @@ jobs:
           bun run sidecar:bundle
           # Build only the native binary for the current runner's platform.
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            bunx @yao-pkg/pkg sidecar.dist.js --targets node20-win-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar-win-x64.exe
+            bunx @yao-pkg/pkg sidecar.dist.js --targets node20-win-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar-x86_64-pc-windows-msvc.exe
+            # duplicate with the runtime path expected by lib.rs
+            cp src-tauri/bin/gg-sidecar-x86_64-pc-windows-msvc.exe src-tauri/bin/gg-sidecar-win-x64.exe
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
             bunx @yao-pkg/pkg sidecar.dist.js --targets node20-macos-arm64,node20-macos-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar
+            if [[ "${{ runner.os }}" == "macOS" ]]; then
+              bun run sidecar:post
+            fi
           else
-            bunx @yao-pkg/pkg sidecar.dist.js --targets node20-linux-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar-linux-x64
+            bunx @yao-pkg/pkg sidecar.dist.js --targets node20-linux-x64 --assets "node_modules/better-sqlite3/build/Release/better_sqlite3.node" --output src-tauri/bin/gg-sidecar-x86_64-unknown-linux-gnu
+            # duplicate for runtime convenience
+            cp src-tauri/bin/gg-sidecar-x86_64-unknown-linux-gnu src-tauri/bin/gg-sidecar-linux-x64 || true
           fi
-          if [[ "${{ runner.os }}" == "macOS" ]]; then
-            bun run sidecar:post
-          fi
-        shell: bash
 
       # Use the official Tauri build action which sets up Rust and platform deps automatically
       - name: Build Tauri bundle
