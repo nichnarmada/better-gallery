@@ -30,6 +30,7 @@ jobs:
 
       # Build the sidecar binary; this produces platform-specific executables
       - name: Build sidecar binary
+        shell: bash
         run: |
           bun run sidecar:bundle
           # Build only the native binary for the current runner's platform.
