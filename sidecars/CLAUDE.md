@@ -116,7 +116,7 @@ gg-sidecar --scan "/path/to/photos" --db "/path/to/db" --folder-id 1
 bunx esbuild sidecars/pkg-entry.js --bundle --platform=node --format=cjs --outfile=sidecar.dist.js
 
 # Compile to native binaries  
-bunx @yao-pkg/pkg sidecar.dist.js --targets node20-macos-arm64,node20-macos-x64,node20-win-x64,node20-linux-x64
+bunx @yao-pkg/pkg sidecar.dist.js --targets node20-macos-arm64,node20-macos-x64,node20-win-x64
 
 # Copy with platform-specific names
 cp gg-sidecar-macos-arm64 gg-sidecar-aarch64-apple-darwin

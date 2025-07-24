@@ -52,7 +52,7 @@ fn sidecar_command(folder_path: &str, db_path: &str) -> (String, Vec<String>)
 ```
 - **Development mode**: Uses `npx tsx` to run TypeScript directly
 - **Production mode**: Uses compiled binary from `/bin/`
-- **Platform detection**: Selects correct binary for macOS (ARM64/x64), Windows, Linux
+- **Platform detection**: Selects correct binary for macOS (ARM64/x64) and Windows
 - **Fallback strategy**: Falls back to TypeScript if binary missing
 
 ### 📡 Tauri Commands

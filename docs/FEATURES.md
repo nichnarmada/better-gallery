@@ -61,5 +61,5 @@
 ## 10. Packaging & Updates
 
 - Windows installer (MSI/NSIS) with auto-update.
-- macOS `.dmg` & Linux `.AppImage` in later milestones.
+- macOS `.dmg` in later milestones.
 - Delta patch updates via Tauri updater.
