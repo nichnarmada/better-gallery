@@ -113,6 +113,9 @@ src-tauri/target
 src-tauri/bin
 dist
 
+# Sidecar build artifacts
+sidecar.dist.js
+
 # IDEs
 .vscode
 .idea

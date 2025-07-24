@@ -8,6 +8,7 @@ const host = process.env.TAURI_DEV_HOST
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
+  base: './', // Enable relative paths for Tauri asset protocol
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -38,8 +39,10 @@ export default defineConfig(async () => ({
     },
   },
   build: {
-    rollupOptions: {
-      external: ['@tauri-apps/api/core', '@tauri-apps/api/dialog', '@tauri-apps/api/event'],
-    },
+    // Platform-specific targets for Tauri webview compatibility
+    target: process.env.TAURI_ENV_PLATFORM === 'windows' ? 'chrome105' : 'safari13',
+    minify: (!process.env.TAURI_ENV_DEBUG ? 'esbuild' : false) as boolean | 'esbuild' | 'terser',
+    // Remove external dependencies that can break bundling in Tauri
+    rollupOptions: {},
   },
 }))

@@ -16,12 +16,30 @@ function Landing() {
   const navigate = useNavigate()
 
   React.useEffect(() => {
-    invoke<{ id: number; path: string }[]>('list_folders').then(() => {
-      navigate({ to: '/gallery', replace: true })
-    })
+    console.log('Landing component mounted, invoking list_folders...')
+    invoke<{ id: number; path: string }[]>('list_folders')
+      .then((folders) => {
+        console.log('list_folders success:', folders)
+        navigate({ to: '/gallery', replace: true })
+      })
+      .catch((error) => {
+        console.error('Failed to invoke list_folders:', error)
+        navigate({ to: '/setup', replace: true })
+      })
   }, [navigate])
 
-  return null
+  return (
+    <div style={{ 
+      padding: '20px', 
+      textAlign: 'center', 
+      fontSize: '18px',
+      backgroundColor: 'white',
+      color: 'black',
+      minHeight: '100vh'
+    }}>
+      Loading Better Gallery...
+    </div>
+  )
 }
 
 const landingRoute = new Route({
