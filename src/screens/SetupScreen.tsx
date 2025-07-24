@@ -18,12 +18,16 @@ export function SetupScreen() {
       })
 
       if (typeof selected === 'string') {
-        await invoke<number>('add_folder', { folderPath: selected })
-        toast.info('Folder added. Scanning will start automatically.', { description: selected })
+        console.log('Selected folder:', selected)
+        const folderId = await invoke<number>('add_folder', { folderPath: selected })
+        console.log('Folder added with ID:', folderId)
+        
+        toast.success('Folder added successfully!', { description: selected })
         navigate({ to: '/gallery', replace: true })
       }
     } catch (error) {
       console.error('Error during folder selection or scan:', error)
+      toast.error(`Error: ${error}`)
     }
   }
 

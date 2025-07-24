@@ -115,6 +115,7 @@ dist
 
 # Sidecar build artifacts
 sidecar.dist.js
+src-tauri/sidecar.js
 
 # IDEs
 .vscode

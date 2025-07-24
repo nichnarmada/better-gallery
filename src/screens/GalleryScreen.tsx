@@ -18,7 +18,7 @@ export function GalleryScreen() {
   const queryClient = useQueryClient()
 
   // Folders query
-  const { data: folderRows = [] } = useQuery({
+  const { data: folderRows = [], refetch: refetchFolders } = useQuery({
     queryKey: ['folders'],
     queryFn: () => invoke<{ id: number; path: string }[]>('list_folders'),
   })
@@ -33,7 +33,6 @@ export function GalleryScreen() {
   } = useQuery({
     queryKey: ['photos'],
     queryFn: () => invoke<Photo[]>('get_all_photos'),
-    enabled: scanStatus === 'done',
     refetchOnWindowFocus: false,
   })
 
@@ -43,8 +42,20 @@ export function GalleryScreen() {
     if (hasScanned.current || folders.length === 0) return
     hasScanned.current = true
     setScanStatus('scanning')
-    folders.forEach(path => invoke('scan_folder', { folderPath: path }))
-  }, [folders])
+    
+    // Scan all folders
+    Promise.all(
+      folders.map(path => invoke('scan_folder', { folderPath: path }))
+    ).then(() => {
+      console.log('All folders scanned')
+      setScanStatus('done')
+      refetch() // Refresh photos after scanning
+    }).catch(error => {
+      console.error('Error scanning folders:', error)
+      setScanStatus('error')
+      toast.error(`Scanning failed: ${error}`)
+    })
+  }, [folders, refetch])
 
   useEffect(() => {
     const unlisten = listen<string>('scan-update', event => {
@@ -101,9 +112,26 @@ export function GalleryScreen() {
 
             <div className="flex items-center gap-2">
               <Button
-                onClick={() => {
+                onClick={async () => {
                   setScanStatus('scanning')
-                  folders.forEach(path => invoke('refresh_library', { folderPath: path }))
+                  try {
+                    // First refresh the folders list to pick up any new/removed folders
+                    const freshFolders = await refetchFolders()
+                    const folderPaths = freshFolders.data?.map(f => f.path) || []
+                    
+                    // Then refresh each folder's photos
+                    await Promise.all(
+                      folderPaths.map(path => invoke('refresh_library', { folderPath: path }))
+                    )
+                    console.log('All folders refreshed')
+                    setScanStatus('done')
+                    refetch() // Refresh photos after scanning
+                    toast.success('Library refreshed successfully!')
+                  } catch (error) {
+                    console.error('Error refreshing library:', error)
+                    setScanStatus('error')
+                    toast.error(`Refresh failed: ${error}`)
+                  }
                 }}
                 disabled={scanStatus === 'scanning'}
                 variant="outline"
@@ -135,11 +163,37 @@ export function GalleryScreen() {
             {!isLoading && !isError && (!photos || photos.length === 0) && (
               <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                 <p className="text-muted-foreground text-lg">No photos yet</p>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Folders in database: {folderRows.length}</p>
+                  <p>Scan status: {scanStatus}</p>
+                  {folderRows.length > 0 && (
+                    <div>
+                      <p>Folders:</p>
+                      {folderRows.map(f => (
+                        <p key={f.id} className="font-mono text-xs">{f.path}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <FolderManagerDialog>
                   <Button variant="default">
                     <Plus className="mr-2 h-4 w-4" /> Add Folder
                   </Button>
                 </FolderManagerDialog>
+                <Button 
+                  onClick={async () => {
+                    try {
+                      const result = await invoke<{folders: number, photos: number}>('debug_database_status')
+                      toast.info(`Debug: ${result.folders} folders, ${result.photos} photos in database`)
+                    } catch (error) {
+                      toast.error(`Debug failed: ${error}`)
+                    }
+                  }}
+                  variant="outline" 
+                  size="sm"
+                >
+                  Debug Database
+                </Button>
               </div>
             )}
 
